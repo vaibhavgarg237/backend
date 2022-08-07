@@ -11,21 +11,34 @@ router.post(
 		body("name", "Enter a valid name").isLength({ min: 3 }),
 		body("password").isLength({ min: 5 }),
 	],
-	(req, res) => {
-		const errors = validationResult(req);
+	async (req, res) => {
+		//if(errors) return bad request
+		const errors = validationResult(req); //written above
 		if (!errors.isEmpty()) {
 			return res.status(400).json({ errors: errors.array() });
 		}
 
-		User.create({
-			name: req.body.name,
-			password: req.body.password,
-			email: req.body.email,
-		})
-			.then((user) => res.json(user)) //return JSON
-			.catch((err) => {
-				res.json({ error: "Please enter unique values", message: err.message });
+		//duplicacy checks
+		try {
+			let user = await User.findOne({ email: req.body.email }); //await
+			if (user) {
+				return res
+					.status(400)
+					.json({ error: "A user with this email already exists!" });
+			}
+
+			//Create a user
+			user = await User.create({
+				//await
+				name: req.body.name,
+				password: req.body.password,
+				email: req.body.email,
 			});
+			res.json(user);
+		} catch (error) {
+			console.log(error.message);
+			res.status(500).send("some error occured");
+		}
 	}
 );
 
