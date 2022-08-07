@@ -20,4 +20,6 @@ const UserSchema = new Schema(
 	{ timestamps: true }
 );
 
-module.exports = mongoose.model("user", UserSchema);
+const user = mongoose.model("user", UserSchema);
+user.createIndexes(); //avoid duplicacy in dB
+module.exports = user;
