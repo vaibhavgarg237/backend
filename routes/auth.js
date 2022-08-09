@@ -7,7 +7,7 @@ const jwt = require("jsonwebtoken");
 
 //Create a user: POST  api/auth without user auth
 router.post(
-	"/",
+	"/createuser",
 	[
 		body("email", "Enter valid email").isEmail(),
 		body("name", "Enter a valid name").isLength({ min: 3 }),
@@ -41,7 +41,7 @@ router.post(
 				email: req.body.email,
 			});
 
-			//Create authToken to return to user, data is id so that we can easily search afterwards in db
+			//Create authToken to return to user, data is id so that we can easily search afterwards in db,,, send user data signed with secret
 			const data = {
 				user: {
 					id: user.id,
@@ -51,7 +51,51 @@ router.post(
 			res.json({ authToken });
 		} catch (error) {
 			console.log(error.message);
-			res.status(500).send("some error occured");
+			res.status(500).send("Internal server error");
+		}
+	}
+);
+
+//Authenticate a user: POST  api/auth without user auth, no login requied
+router.post(
+	"/login",
+	[body("email", "Enter valid email").isEmail()],
+	[body("password", "Password can't be blank").exists()],
+	async (req, res) => {
+		//if(errors) return bad request
+		const errors = validationResult(req); //written above
+		if (!errors.isEmpty()) {
+			return res.status(400).json({ errors: errors.array() });
+		}
+
+		const { email, password } = req.body;
+		try {
+			//Find if user exists or not
+			let user = await User.findOne({ email });
+			if (!user) {
+				return res
+					.status(400)
+					.json({ errors: "Please login with correct credentials!" });
+			}
+			//compare passwds
+			const passwdCompare = await bcrypt.compare(password, user.password);
+			if (!passwdCompare) {
+				return res
+					.status(400)
+					.json({ errors: "Please login with correct credentials!" });
+			}
+
+			//When verified send user data signed with secret
+			const data = {
+				user: {
+					id: user.id,
+				},
+			};
+			const authToken = jwt.sign(data, "secretKeyStoredInConfig");
+			res.json({ authToken });
+		} catch (error) {
+			console.log(error.message);
+			res.status(500).send("Internal server error");
 		}
 	}
 );
