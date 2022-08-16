@@ -7,6 +7,8 @@ const jwt = require("jsonwebtoken");
 const fetchusers = require("../middleware/fetchusers");
 const user = require("../models/User");
 
+let success = false;
+
 //Route 1: Create a user: POST  api/auth without user auth
 router.post(
 	"/createuser",
@@ -19,7 +21,7 @@ router.post(
 		//if(errors) return bad request
 		const errors = validationResult(req); //written above
 		if (!errors.isEmpty()) {
-			return res.status(400).json({ errors: errors.array() });
+			return res.status(400).json({ success, errors: errors.array() });
 		}
 
 		//duplicacy checks
@@ -28,7 +30,7 @@ router.post(
 			if (user) {
 				return res
 					.status(400)
-					.json({ error: "A user with this email already exists!" });
+					.json({ success, error: "A user with this email already exists!" });
 			}
 
 			//Hash passwd securely
@@ -50,7 +52,7 @@ router.post(
 				},
 			};
 			const authToken = jwt.sign(data, "secretKeyStoredInConfig");
-			res.json({ authToken });
+			res.json({ success: true, tokenn: authToken });
 		} catch (error) {
 			console.log(error.message);
 			res.status(500).send("Internal server error");
@@ -67,7 +69,7 @@ router.post(
 		//if(errors) return bad request
 		const errors = validationResult(req); //written above
 		if (!errors.isEmpty()) {
-			return res.status(400).json({ errors: errors.array() });
+			return res.status(400).json({ success, errors: errors.array() });
 		}
 
 		const { email, password } = req.body;
@@ -77,14 +79,14 @@ router.post(
 			if (!user) {
 				return res
 					.status(400)
-					.json({ errors: "Please login with correct credentials!" });
+					.json({ success, errors: "Please login with correct credentials!" });
 			}
 			//compare passwds
 			const passwdCompare = await bcrypt.compare(password, user.password);
 			if (!passwdCompare) {
 				return res
 					.status(400)
-					.json({ errors: "Please login with correct credentials!" });
+					.json({ success, errors: "Please login with correct credentials!" });
 			}
 
 			//When verified send user data signed with secret
@@ -94,7 +96,7 @@ router.post(
 				},
 			};
 			const authToken = jwt.sign(data, "secretKeyStoredInConfig");
-			res.json({ authToken });
+			res.json({ success: true, authToken });
 		} catch (error) {
 			console.log(error.message);
 			res.status(500).send("Internal server error");
